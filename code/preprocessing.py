@@ -215,14 +215,30 @@ class ISIC2017Dataset(Dataset):
             gt_path = self._find_ground_truth(data_dir)
             if gt_path is not None:
                 self.labels = parse_isic2017_ground_truth(gt_path)
+
+        # 过滤掉没有标签的无效图片（如 -1）
+        if self.labels:
+            valid_image_paths = []
+            for path in self.image_paths:
+                image_id = self._get_image_id(path)
+                if image_id in self.labels:
+                    valid_image_paths.append(path)
+            
+            if len(valid_image_paths) < len(self.image_paths):
+                print(f"Split {os.path.basename(data_dir)}: Filtered {len(self.image_paths) - len(valid_image_paths)} invalid samples.")
+                self.image_paths = valid_image_paths
     
     def _find_images(self, images_dir: str) -> List[str]:
-        """Find all image files in directory."""
+        """Find all image files in directory, filtering out masks."""
         image_extensions = {'.jpg', '.jpeg', '.png', '.bmp'}
         image_paths = []
         
         if os.path.exists(images_dir):
             for filename in sorted(os.listdir(images_dir)):
+                # 跳过超像素掩码文件
+                if 'superpixels' in filename.lower():
+                    continue
+                    
                 ext = os.path.splitext(filename)[1].lower()
                 if ext in image_extensions:
                     image_paths.append(os.path.join(images_dir, filename))
@@ -230,17 +246,29 @@ class ISIC2017Dataset(Dataset):
         return image_paths
     
     def _find_ground_truth(self, data_dir: str) -> Optional[str]:
-        """Try to find ground truth file in data directory."""
-        common_patterns = [
-            'ISIC-2017_Training_Part3_GroundTruth.csv',
-            'ISIC-2017_Validation_Part3_GroundTruth.csv',
-            'ISIC-2017_Test_v2_Part3_GroundTruth.csv',
-            'ground_truth.csv',
-            'labels.csv'
-        ]
+        """Try to find ground truth file in data directory or its parent."""
+        # Get the split name (train, val, test)
+        split_name = os.path.basename(data_dir).lower()
         
-        for pattern in common_patterns:
+        # Define specific patterns based on split
+        split_patterns = {
+            'train': ['ISIC-2017_Training_Part3_GroundTruth.csv'],
+            'val': ['ISIC-2017_Validation_Part3_GroundTruth.csv'],
+            'test': ['ISIC-2017_Test_v2_Part3_GroundTruth.csv']
+        }
+        
+        patterns = split_patterns.get(split_name, []) + ['ground_truth.csv', 'labels.csv']
+        
+        # Check in current directory
+        for pattern in patterns:
             path = os.path.join(data_dir, pattern)
+            if os.path.exists(path):
+                return path
+        
+        # Check in parent directory
+        parent_dir = os.path.dirname(data_dir)
+        for pattern in patterns:
+            path = os.path.join(parent_dir, pattern)
             if os.path.exists(path):
                 return path
         

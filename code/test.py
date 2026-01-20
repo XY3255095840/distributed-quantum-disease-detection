@@ -23,7 +23,8 @@ from sklearn.metrics import (
     confusion_matrix
 )
 from tqdm import tqdm
-
+import site
+site.USER_SITE = None
 # Add code directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -292,9 +293,23 @@ def main():
     print("QCNet Testing")
     print("=" * 50)
     
+    # CUDA Diagnosis
+    print(f"Python executable: {sys.executable}")
+    print(f"PyTorch version: {torch.__version__}")
+    print(f"CUDA library available: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        print(f"GPU Device: {torch.cuda.get_device_name(0)}")
+    else:
+        import site
+        print(f"User site-packages: {site.getusersitepackages()}")
+    
     # Set device
     if args.device:
-        device = torch.device(args.device)
+        if 'cuda' in args.device and not torch.cuda.is_available():
+            print(f"Warning: CUDA requested but not available. Falling back to cpu.")
+            device = torch.device('cpu')
+        else:
+            device = torch.device(args.device)
     else:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -325,6 +340,12 @@ def main():
     
     if test_loader is None:
         print("Error: No test data available.")
+        return
+    
+    if len(test_loader.dataset) == 0:
+        print("\nError: Test dataset is empty!")
+        print(f"Please ensure the test ground truth file exists in: {args.data_dir}")
+        print("Expected file: ISIC-2017_Test_v2_Part3_GroundTruth.csv")
         return
     
     print(f"Test samples: {len(test_loader.dataset)}")
@@ -375,4 +396,6 @@ def main():
 
 
 if __name__ == '__main__':
+    print(torch.cuda.is_available())
     main()
+    
