@@ -14,22 +14,24 @@ This project implements a hybrid quantum-classical neural network for skin cance
 ```
 distributed-quantum-disease-detection/
 ├── code/
-│   ├── backbone_3.py      # QCNet hybrid model combining classical and quantum networks
-│   ├── mobilnet.py        # MobileNetV2 classical backbone
-│   ├── mps3.py            # Distributed QNN with circuit cutting
-│   ├── qnn.py             # Alternative QNN implementation
-│   ├── no_cut_qnn.py      # QNN without circuit cutting
-│   ├── mlp.py             # Simple MLP baseline
-│   ├── matrix.py          # Confusion matrix visualization
-│   ├── preprocessing.py   # Data preprocessing utilities for ISIC2017
-│   ├── data_loader.py     # Data loading and dataset classes
-│   ├── train.py           # Training script
-│   ├── test.py            # Testing and evaluation script
-│   ├── validation.py      # Model and tensor validation utilities
-│   └── main.py            # Main entry point with CLI
-├── data/                  # Dataset directory (ISIC2017)
-├── tests/                 # Unit tests
-├── requirements.txt       # Python dependencies
+│   ├── backbone_3.py           # QCNet hybrid model combining classical and quantum networks
+│   ├── mobilnet.py             # MobileNetV2 classical backbone
+│   ├── mps3.py                 # Distributed QNN with circuit cutting
+│   ├── qnn.py                  # Alternative QNN implementation
+│   ├── no_cut_qnn.py           # QNN without circuit cutting
+│   ├── data_reuploading.py     # Data re-uploading QNN with efficient multi-qubit encoding
+│   ├── benchmark_data_reuploading.py  # Benchmark script for data re-uploading
+│   ├── mlp.py                  # Simple MLP baseline
+│   ├── matrix.py               # Confusion matrix visualization
+│   ├── preprocessing.py        # Data preprocessing utilities for ISIC2017
+│   ├── data_loader.py          # Data loading and dataset classes
+│   ├── train.py                # Training script
+│   ├── test.py                 # Testing and evaluation script
+│   ├── validation.py           # Model and tensor validation utilities
+│   └── main.py                 # Main entry point with CLI
+├── data/                       # Dataset directory (ISIC2017)
+├── tests/                      # Unit tests
+├── requirements.txt            # Python dependencies
 └── README.md
 ```
 
@@ -136,6 +138,55 @@ data/
 
 - **Input**: `(batch_size, 3, 128, 128)` - RGB images
 - **Output**: `(batch_size, 3)` - Logits for 3 classes
+
+## Data Re-uploading QNN
+
+This project includes an efficient data re-uploading QNN implementation for function approximation and data encoding.
+
+### Features
+
+1. **Single-Qubit Data Re-uploading**: Universal function approximator using a single qubit with multiple re-uploading layers
+2. **Efficient Multi-Qubit Encoding**: Parameter-efficient encoding using only `n_qubits × n_layers` trainable parameters (3x reduction compared to dense encoding)
+3. **TorchLayer Wrapper**: Seamless integration with PyTorch models
+
+### Usage
+
+```python
+from data_reuploading import (
+    SingleQubitReuploadingQNN,
+    EfficientMultiQubitEncoding,
+    DataEncodingTorchLayer,
+)
+
+# Single-qubit QNN for function fitting
+model = SingleQubitReuploadingQNN(n_layers=3)
+
+# Efficient multi-qubit encoding
+encoding = EfficientMultiQubitEncoding(n_qubits=4, n_layers=2)
+
+# TorchLayer wrapper for integration with PyTorch
+layer = DataEncodingTorchLayer(
+    input_dim=8,
+    n_qubits=4,
+    n_layers=2,
+    output_dim=3
+)
+```
+
+### Benchmark Results
+
+| Configuration | Our Method (params) | Dense Encoding (params) |
+|--------------|---------------------|------------------------|
+| 4 qubits, 2 layers | 8 | 24 |
+| 4 qubits, 3 layers | 12 | 36 |
+| 8 qubits, 2 layers | 16 | 48 |
+| 8 qubits, 3 layers | 24 | 72 |
+
+Run the benchmark script:
+```bash
+cd code
+python benchmark_data_reuploading.py
+```
 
 ## Running Tests
 
