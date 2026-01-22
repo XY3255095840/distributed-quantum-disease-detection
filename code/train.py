@@ -22,7 +22,7 @@ import numpy as np
 # Add code directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from backbone_3 import QCNet
+from backbone_3_DRN import QCNet
 from data_loader import get_dummy_loaders, get_isic2017_loaders, DummyDataset
 
 
